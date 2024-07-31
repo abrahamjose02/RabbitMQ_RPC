@@ -1,18 +1,30 @@
 import { Channel, ConsumeMessage } from "amqplib";
+import EventEmitter from "events";
 
-export default class Consumer{
+export default class Consumer {
+  constructor(
+    private channel: Channel,
+    private replyQueueName: string,
+    private eventEmitter: EventEmitter
+  ) {}
 
-    constructor(private channel: Channel, private replyQueueName: string){}
+  async consumeMessages() {
+    console.log("Ready to consume messages...");
 
-    async consumeMessages(){
-        console.log('Ready to consume messages...')
-        
-        this.channel.consume(this.replyQueueName,(message:ConsumeMessage | null) => {
-            if(message){
-                console.log('the reply is ...',JSON.parse(message.content.toString()));
-            }
-        },{
-            noAck:true,
-        })
-    }
+    this.channel.consume(
+      this.replyQueueName,
+      (message: ConsumeMessage | null) => {
+        if(message){
+            console.log("the reply is..", JSON.parse(message.content.toString()));
+            this.eventEmitter.emit(
+              message.properties.correlationId.toString(),
+              message
+            );
+        }
+      },
+      {
+        noAck: true,
+      }
+    );
+  }
 }
